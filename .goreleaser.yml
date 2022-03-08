@@ -1,4 +1,4 @@
-project_name: simplewraptoimage
+project_name: trace-redirects
 builds:
   -
     binary: "trace-redirects"
