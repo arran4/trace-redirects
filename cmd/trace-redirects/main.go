@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/arran4/trace-redirects"
 	"log"
-	"trace-redirects"
 )
 
 func main() {
@@ -11,19 +12,19 @@ func main() {
 	flag.Parse()
 
 	if len(flag.Args()) == 0 {
-		log.Printf("Please provide some URLs")
+		fmt.Printf("Please provide some URLs\n")
 		return
 	}
 
 	for _, u := range flag.Args() {
-		log.Printf("Tracing %s", u)
+		log.Printf("Tracing %s\n", u)
 		ls, err := traceredirects.Trace(u)
 		if err != nil {
-			log.Printf("Error: %s", err)
+			fmt.Printf("Error: %s\n", err)
 		}
 		for n, l := range ls {
-			log.Printf("%d: %s", n+1, l)
+			fmt.Printf("%d: %s\n", n+1, l)
 		}
 	}
-	log.Printf("Done")
+	fmt.Printf("Done\n")
 }
