@@ -1,8 +1,11 @@
 package traceredirects
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 )
 
 type RedirectHeaderType int
@@ -20,9 +23,18 @@ type RedirectHeader struct {
 func Trace(u string) ([]string, error) {
 	next := u
 	var r []string
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: 30 * time.Second,
+	}
 	for len(next) > 0 {
+		if len(r) > 20 {
+			return nil, fmt.Errorf("too many redirects")
+		}
 		r = append(r, next)
-		r, err := http.Get(next)
+		resp, err := client.Get(next)
 		if err != nil {
 			return nil, err
 		}
@@ -33,17 +45,25 @@ func Trace(u string) ([]string, error) {
 		} {
 			switch header.Type {
 			case DelayURL:
-				s := strings.Split(r.Header.Get(header.Header), ";")
+				s := strings.Split(resp.Header.Get(header.Header), ";")
 				if len(s) > 1 {
-					next = strings.TrimPrefix(strings.TrimSpace(s[1]), "URL=")
+					val := strings.TrimSpace(s[1])
+					if strings.HasPrefix(strings.ToLower(val), "url=") {
+						next = val[4:]
+					}
 				}
 			default:
-				next = r.Header.Get(header.Header)
+				next = resp.Header.Get(header.Header)
 			}
 			if len(next) > 0 {
+				nextURL, err := url.Parse(next)
+				if err == nil {
+					next = resp.Request.URL.ResolveReference(nextURL).String()
+				}
 				break
 			}
 		}
+		resp.Body.Close()
 	}
 	return r, nil
 }
